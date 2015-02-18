@@ -8,14 +8,29 @@ app = Flask(__name__)
 
 radar_url = 'http://www.bom.gov.au/products/IDR023.loop.shtml'
 background_image_url = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.background.png'
+topography_url = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.topography.png'
+range_url = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.range.png'
+locations_url = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.locations.png'
+legend_url = 'http://www.bom.gov.au/products/radar_transparencies/IDR.legend.0.png'
+
+urllib.urlretrieve(background_image_url, 'background.png')
+urllib.urlretrieve(topography_url, 'topography.png')
+urllib.urlretrieve(range_url, 'range.png')
+urllib.urlretrieve(locations_url, 'locations.png')
+urllib.urlretrieve(legend_url, 'legend.png')
+
+legend = Image.open('legend.png').convert('RGBA')
+background = Image.open('background.png').convert('RGBA').resize(legend.size)
+topography = Image.open('topography.png').convert('RGBA').resize(legend.size)
+range_ = Image.open('range.png').convert('RGBA').resize(legend.size)
+locations = Image.open('locations.png').convert('RGBA').resize(legend.size)
+
 image_regex = re.compile(r'theImageNames\[\d\]')
 url_regex = re.compile(r'http.*png')
 
 @app.route('/')
 @app.route('/radar.gif')
 def gifme():
-    urllib.urlretrieve(background_image_url, 'background.png')
-
     req = urllib2.urlopen(radar_url)
     lines = req.readlines()
     urls = []
@@ -25,21 +40,24 @@ def gifme():
             url = m.group(0)
             urls.append(url)
 
-    background = Image.open('background.png')
 
     frames = []
     for url in urls:
-        urllib.urlretrieve(url, 'foreground.png')
-        foreground = Image.open('foreground.png')
         bg = Image.new("RGBA", background.size)
         bg.paste(background)
-        fg = Image.new('RGBA', foreground.size)
-        fg.paste(foreground)
+        bg.paste(topography, box=(0, 0), mask=topography)
+
+        urllib.urlretrieve(url, 'foreground.png')
+        fg = Image.open('foreground.png').convert('RGBA').resize(bg.size)
         bg.paste(fg, box=(0, 0), mask=fg)
+
+        bg.paste(range_, box=(0, 0), mask=range_)
+        bg.paste(locations, box=(0, 0), mask=locations)
+        bg.paste(legend, box=(0, 0), mask=legend)
+
         frames.append(bg.copy())
 
     writeGif('derp.gif', frames, duration=0.5)
-
 
     f = open('derp.gif', 'rb')
     ba = bytearray(f.read())
@@ -48,5 +66,6 @@ def gifme():
     return response
 
 if __name__ == "__main__":
+    app.debug = True
     app.run()
     # gifme()
