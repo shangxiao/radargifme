@@ -1,0 +1,1 @@
+web: gunicorn gifme:app --log-file -
