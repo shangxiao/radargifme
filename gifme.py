@@ -12,6 +12,7 @@ image_regex = re.compile(r'theImageNames\[\d\]')
 url_regex = re.compile(r'http.*png')
 
 @app.route('/')
+@app.route('/radar.gif')
 def gifme():
     urllib.urlretrieve(background_image_url, 'background.png')
 
