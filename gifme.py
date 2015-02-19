@@ -52,7 +52,7 @@ def gifme():
         bg.paste(locations, box=box, mask=locations)
         bg.paste(legend, mask=legend)
 
-        frames.append(bg.copy())
+        frames.append(bg)
 
     writeGif('derp.gif', frames, duration=0.5)
 
