@@ -20,10 +20,10 @@ urllib.urlretrieve(locations_url, 'locations.png')
 urllib.urlretrieve(legend_url, 'legend.png')
 
 legend = Image.open('legend.png').convert('RGBA')
-background = Image.open('background.png').convert('RGBA').resize(legend.size)
-topography = Image.open('topography.png').convert('RGBA').resize(legend.size)
-range_ = Image.open('range.png').convert('RGBA').resize(legend.size)
-locations = Image.open('locations.png').convert('RGBA').resize(legend.size)
+background = Image.open('background.png').convert('RGBA')
+topography = Image.open('topography.png').convert('RGBA')
+range_ = Image.open('range.png').convert('RGBA')
+locations = Image.open('locations.png').convert('RGBA')
 
 image_regex = re.compile(r'theImageNames\[\d\]')
 url_regex = re.compile(r'http.*png')
@@ -43,17 +43,18 @@ def gifme():
 
     frames = []
     for url in urls:
-        bg = Image.new("RGBA", background.size)
-        bg.paste(background)
-        bg.paste(topography, box=(0, 0), mask=topography)
+        bg = Image.new("RGBA", legend.size)
+        box = (0, 0) + background.size
+        bg.paste(background, box=box)
+        bg.paste(topography, box=box, mask=topography)
 
         urllib.urlretrieve(url, 'foreground.png')
-        fg = Image.open('foreground.png').convert('RGBA').resize(bg.size)
-        bg.paste(fg, box=(0, 0), mask=fg)
+        fg = Image.open('foreground.png').convert('RGBA')
+        bg.paste(fg, box=box, mask=fg)
 
-        bg.paste(range_, box=(0, 0), mask=range_)
-        bg.paste(locations, box=(0, 0), mask=locations)
-        bg.paste(legend, box=(0, 0), mask=legend)
+        bg.paste(range_, box=box, mask=range_)
+        bg.paste(locations, box=box, mask=locations)
+        bg.paste(legend, mask=legend)
 
         frames.append(bg.copy())
 
