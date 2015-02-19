@@ -39,20 +39,20 @@ def gifme():
 
     frames = []
     for url in radar_image_urls:
-        bg = Image.new("RGBA", legend.size)
+        frame = Image.new("RGBA", legend.size)
         box = (0, 0) + background.size
-        bg.paste(background, box=box)
-        bg.paste(topography, box=box, mask=topography)
+        frame.paste(background, box=box)
+        frame.paste(topography, box=box, mask=topography)
 
         urllib.urlretrieve(url, 'foreground.png')
         fg = Image.open('foreground.png').convert('RGBA')
-        bg.paste(fg, box=box, mask=fg)
+        frame.paste(fg, box=box, mask=fg)
 
-        bg.paste(range_, box=box, mask=range_)
-        bg.paste(locations, box=box, mask=locations)
-        bg.paste(legend, mask=legend)
+        frame.paste(range_, box=box, mask=range_)
+        frame.paste(locations, box=box, mask=locations)
+        frame.paste(legend, mask=legend)
 
-        frames.append(bg)
+        frames.append(frame)
 
     writeGif('derp.gif', frames, duration=0.5)
 
