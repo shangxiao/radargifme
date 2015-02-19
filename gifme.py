@@ -56,9 +56,7 @@ def gifme():
 
     writeGif('derp.gif', frames, duration=0.5)
 
-    f = open('derp.gif', 'rb')
-    ba = bytearray(f.read())
-    response = make_response(ba)
+    response = make_response(open('derp.gif', 'rb').read())
     response.headers['Content-Type'] = 'image/gif'
     return response
 
