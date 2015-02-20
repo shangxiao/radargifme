@@ -580,11 +580,12 @@ def writeGif(filename, images, duration=0.1, repeat=True, dither=False,
     images = gifWriter.convertImagesToPIL(images, dither, nq)
 
     # Write
-    fp = open(filename, 'wb')
-    try:
-        gifWriter.writeGifToFile(fp, images, duration, loops, xy, dispose)
-    finally:
-        fp.close()
+    # fp = open(filename, 'wb')
+    # XXXX
+    # try:
+    gifWriter.writeGifToFile(filename, images, duration, loops, xy, dispose)
+    # finally:
+        # filename.close()
 
 
 

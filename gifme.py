@@ -1,5 +1,5 @@
-import urllib
 import urllib2
+import cStringIO
 import re
 from PIL import Image
 from flask import Flask, make_response
@@ -13,50 +13,47 @@ RANGE_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.range.pn
 LOCATIONS_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.locations.png'
 LEGEND_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR.legend.0.png'
 
-urllib.urlretrieve(BACKGROUND_IMAGE_URL, 'background.png')
-urllib.urlretrieve(TOPOGRAPHY_URL, 'topography.png')
-urllib.urlretrieve(RANGE_URL, 'range.png')
-urllib.urlretrieve(LOCATIONS_URL, 'locations.png')
-urllib.urlretrieve(LEGEND_URL, 'legend.png')
-
-legend = Image.open('legend.png').convert('RGBA')
-background = Image.open('background.png').convert('RGBA')
-topography = Image.open('topography.png').convert('RGBA')
-range_ = Image.open('range.png').convert('RGBA')
-locations = Image.open('locations.png').convert('RGBA')
+legend = Image.open(cStringIO.StringIO(urllib2.urlopen(LEGEND_URL).read())).convert('RGBA')
+background = Image.open(cStringIO.StringIO(urllib2.urlopen(BACKGROUND_IMAGE_URL).read())).convert('RGBA')
+topography = Image.open(cStringIO.StringIO(urllib2.urlopen(TOPOGRAPHY_URL).read())).convert('RGBA')
+range_ = Image.open(cStringIO.StringIO(urllib2.urlopen(RANGE_URL).read())).convert('RGBA')
+locations = Image.open(cStringIO.StringIO(urllib2.urlopen(LOCATIONS_URL).read())).convert('RGBA')
 
 image_regex = re.compile(r'theImageNames\[\d\]')
 url_regex = re.compile(r'http.*png')
 
-@app.route('/')
-@app.route('/radar.gif')
-def gifme():
-    radar_image_urls = [
+def fetch_radar_image_urls():
+    return [
         url_regex.search(line).group(0)
         for line in urllib2.urlopen(RADAR_URL).readlines()
         if image_regex.search(line)
     ]
 
-    frames = []
-    for url in radar_image_urls:
-        frame = Image.new("RGBA", legend.size)
-        box = (0, 0) + background.size
-        frame.paste(background, box=box)
-        frame.paste(topography, box=box, mask=topography)
+def create_frame(url):
+    frame = Image.new("RGBA", legend.size)
+    box = (0, 0) + background.size
+    frame.paste(background, box=box)
+    frame.paste(topography, box=box, mask=topography)
 
-        urllib.urlretrieve(url, 'foreground.png')
-        fg = Image.open('foreground.png').convert('RGBA')
-        frame.paste(fg, box=box, mask=fg)
+    fg = Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
+    frame.paste(fg, box=box, mask=fg)
 
-        frame.paste(range_, box=box, mask=range_)
-        frame.paste(locations, box=box, mask=locations)
-        frame.paste(legend, mask=legend)
+    frame.paste(range_, box=box, mask=range_)
+    frame.paste(locations, box=box, mask=locations)
+    frame.paste(legend, mask=legend)
 
-        frames.append(frame)
+    return frame
 
-    writeGif('derp.gif', frames, duration=0.5)
 
-    response = make_response(open('derp.gif', 'rb').read())
+@app.route('/')
+@app.route('/radar.gif')
+def gifme():
+    frames = [create_frame(url) for url in fetch_radar_image_urls()]
+
+    gif_buffer = cStringIO.StringIO()
+    writeGif(gif_buffer, frames, duration=0.5)
+
+    response = make_response(gif_buffer.getvalue())
     response.headers['Content-Type'] = 'image/gif'
     return response
 
