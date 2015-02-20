@@ -13,14 +13,14 @@ RANGE_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.range.pn
 LOCATIONS_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.locations.png'
 LEGEND_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR.legend.0.png'
 
-def get_image(url):
+def fetch_image(url):
     return Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
 
-legend = get_image(LEGEND_URL)
-background = get_image(BACKGROUND_IMAGE_URL)
-topography = get_image(TOPOGRAPHY_URL)
-range_ = get_image(RANGE_URL)
-locations = get_image(LOCATIONS_URL)
+legend = fetch_image(LEGEND_URL)
+background = fetch_image(BACKGROUND_IMAGE_URL)
+topography = fetch_image(TOPOGRAPHY_URL)
+range_ = fetch_image(RANGE_URL)
+locations = fetch_image(LOCATIONS_URL)
 
 image_regex = re.compile(r'theImageNames\[\d\]')
 url_regex = re.compile(r'http.*png')
@@ -33,20 +33,16 @@ def fetch_radar_image_urls():
     ]
 
 def create_frame(url):
+    radar = fetch_image(url)
     frame = Image.new("RGBA", legend.size)
     box = (0, 0) + background.size
     frame.paste(background, box=box)
     frame.paste(topography, box=box, mask=topography)
-
-    fg = Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
-    frame.paste(fg, box=box, mask=fg)
-
+    frame.paste(radar, box=box, mask=radar)
     frame.paste(range_, box=box, mask=range_)
     frame.paste(locations, box=box, mask=locations)
     frame.paste(legend, mask=legend)
-
     return frame
-
 
 @app.route('/')
 @app.route('/radar.gif')
