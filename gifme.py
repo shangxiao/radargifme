@@ -13,11 +13,14 @@ RANGE_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.range.pn
 LOCATIONS_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.locations.png'
 LEGEND_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR.legend.0.png'
 
-legend = Image.open(cStringIO.StringIO(urllib2.urlopen(LEGEND_URL).read())).convert('RGBA')
-background = Image.open(cStringIO.StringIO(urllib2.urlopen(BACKGROUND_IMAGE_URL).read())).convert('RGBA')
-topography = Image.open(cStringIO.StringIO(urllib2.urlopen(TOPOGRAPHY_URL).read())).convert('RGBA')
-range_ = Image.open(cStringIO.StringIO(urllib2.urlopen(RANGE_URL).read())).convert('RGBA')
-locations = Image.open(cStringIO.StringIO(urllib2.urlopen(LOCATIONS_URL).read())).convert('RGBA')
+def get_image(url):
+    return Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
+
+legend = get_image(LEGEND_URL)
+background = get_image(BACKGROUND_IMAGE_URL)
+topography = get_image(TOPOGRAPHY_URL)
+range_ = get_image(RANGE_URL)
+locations = get_image(LOCATIONS_URL)
 
 image_regex = re.compile(r'theImageNames\[\d\]')
 url_regex = re.compile(r'http.*png')
