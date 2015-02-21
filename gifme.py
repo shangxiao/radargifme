@@ -31,17 +31,18 @@ def fetch_image(url):
     if cache:
         filename = os.path.join('cache', filename_regex.search(url).group(1))
         if not os.path.exists(filename):
-            print 'Fetching ' + url
+            print 'Caching ' + url
             try:
                 urllib.urlretrieve(url, filename)
             except Exception as e:
                 raise Exception("Error retrieving image " + url + "\n" + e.message)
         return Image.open(filename).convert('RGBA')
     else:
-        try:
-            return Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
-        except Exception as e:
-            raise Exception("Error retrieving image " + url + "\n" + e.message)
+        print 'Fetching ' + url + '...'
+        # try:
+        return Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
+        # except Exception as e:
+            # raise Exception("Error retrieving image " + url + "\n" + e.message)
 
 legend = fetch_image(LEGEND_URL)
 background = fetch_image(BACKGROUND_IMAGE_URL)
@@ -57,6 +58,7 @@ def fetch_radar_image_urls():
     ]
 
 def fetch_radar_image_urls_last_6_hours():
+    print 'Determining radar URLs...'
     urls = []
     for line in urllib2.urlopen(PAGE_URL).readlines():
         match = last_image_regex.search(line)
@@ -71,6 +73,7 @@ def fetch_radar_image_urls_last_6_hours():
 
 def create_frame(url):
     radar = fetch_image(url)
+    print 'Creating frame for ' + url + '...'
     frame = Image.new("RGBA", legend.size)
     box = (0, 0) + background.size
     frame.paste(background, box=box)
@@ -79,6 +82,7 @@ def create_frame(url):
     frame.paste(range_, box=box, mask=range_)
     frame.paste(locations, box=box, mask=locations)
     frame.paste(legend, mask=legend)
+    print 'Completed frame for ' + url
     return frame
 
 @app.route('/')
@@ -86,8 +90,10 @@ def create_frame(url):
 def gifme():
     frames = [create_frame(url) for url in fetch_radar_image_urls()]
 
+    print 'Making gif...'
     gif_buffer = cStringIO.StringIO()
     writeGif(gif_buffer, frames, duration=0.5)
+    print('Done')
 
     response = make_response(gif_buffer.getvalue())
     response.headers['Content-Type'] = 'image/gif'
@@ -103,5 +109,5 @@ def gifme6():
     return response
 
 if __name__ == "__main__":
-    app.debug = True
+    app.debug = False
     app.run()
