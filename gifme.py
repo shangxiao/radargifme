@@ -9,7 +9,9 @@ from flask import Flask, make_response
 from images2gif import writeGif
 app = Flask(__name__)
 
-if not os.path.exists('cache'):
+cache = False
+
+if cache and not os.path.exists('cache'):
     os.makedirs('cache')
 
 PAGE_URL = 'http://www.bom.gov.au/products/IDR023.loop.shtml'
@@ -26,14 +28,20 @@ url_regex = re.compile(r'http.*png')
 filename_regex = re.compile(r'\/([^\/]+.png)')
 
 def fetch_image(url):
-    filename = os.path.join('cache', filename_regex.search(url).group(1))
-    if not os.path.exists(filename):
-        print 'Fetching ' + url
+    if cache:
+        filename = os.path.join('cache', filename_regex.search(url).group(1))
+        if not os.path.exists(filename):
+            print 'Fetching ' + url
+            try:
+                urllib.urlretrieve(url, filename)
+            except Exception as e:
+                raise Exception("Error retrieving image " + url + "\n" + e.message)
+        return Image.open(filename).convert('RGBA')
+    else:
         try:
-            urllib.urlretrieve(url, filename)
+            return Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
         except Exception as e:
             raise Exception("Error retrieving image " + url + "\n" + e.message)
-    return Image.open(filename).convert('RGBA')
 
 legend = fetch_image(LEGEND_URL)
 background = fetch_image(BACKGROUND_IMAGE_URL)
