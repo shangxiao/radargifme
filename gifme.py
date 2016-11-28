@@ -17,6 +17,7 @@ cache = False
 if cache and not os.path.exists('cache'):
     os.makedirs('cache')
 
+BOM_URL = 'http://www.bom.gov.au/'
 PAGE_URL = 'http://www.bom.gov.au/products/IDR023.loop.shtml'
 BACKGROUND_IMAGE_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.background.png'
 TOPOGRAPHY_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.topography.png'
@@ -24,11 +25,14 @@ RANGE_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.range.pn
 LOCATIONS_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR023.locations.png'
 LEGEND_URL = 'http://www.bom.gov.au/products/radar_transparencies/IDR.legend.0.png'
 RADAR_URL_PREFIX = 'http://wac.72DD.edgecastcdn.net/8072DD/radimg/radar/IDR023.T.'
+MSLP_PAGE_URL = 'http://www.bom.gov.au/australia/charts/synoptic_col.shtml'
 
 image_regex = re.compile(r'theImageNames\[\d\]')
 last_image_regex = re.compile(r'theImageNames\[5\] = "http:\/\/.*T\.(\d{12})\.png"')
 url_regex = re.compile(r'http.*png')
 filename_regex = re.compile(r'\/([^\/]+.png)')
+mslp_url_regex = re.compile(r'/fwo/.*png')
+mslp_image_regex = re.compile(r'url: ')
 
 
 def fetch_image(url):
@@ -61,6 +65,14 @@ def fetch_radar_image_urls():
         url_regex.search(line.decode()).group(0)
         for line in urlopen(PAGE_URL).readlines()
         if image_regex.search(line.decode('utf-8'))
+    ]
+
+
+def fetch_mslp_image_urls():
+    return [
+        mslp_url_regex.search(line.decode()).group(0)
+        for line in urlopen(MSLP_PAGE_URL).readlines()
+        if mslp_image_regex.search(line.decode())
     ]
 
 
@@ -119,6 +131,26 @@ def gifme():
     response = make_response(gif_buffer.getvalue())
     response.headers['Content-Type'] = 'image/gif'
     return response
+
+
+@app.route('/mslp')
+def mslp():
+    frames = [
+        frame
+        for frame in [
+            fetch_image(BOM_URL + url)
+            for url in fetch_mslp_image_urls()
+        ]
+        if frame is not None
+    ]
+
+    gif_buffer = BytesIO()
+    writeGif(gif_buffer, frames, duration=0.5)
+
+    response = make_response(gif_buffer.getvalue())
+    response.headers['Content-Type'] = 'image/gif'
+    return response
+
 
 @app.route('/6/radar.gif')
 def gifme6():
