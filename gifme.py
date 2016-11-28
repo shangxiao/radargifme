@@ -30,6 +30,7 @@ last_image_regex = re.compile(r'theImageNames\[5\] = "http:\/\/.*T\.(\d{12})\.pn
 url_regex = re.compile(r'http.*png')
 filename_regex = re.compile(r'\/([^\/]+.png)')
 
+
 def fetch_image(url):
     if cache:
         filename = os.path.join('cache', filename_regex.search(url).group(1))
@@ -45,7 +46,8 @@ def fetch_image(url):
         # try:
         return Image.open(BytesIO(urlopen(url).read())).convert('RGBA')
         # except Exception as e:
-            # raise Exception("Error retrieving image " + url + "\n" + e.message)
+        #     raise Exception("Error retrieving image " + url + "\n" + e.message)
+
 
 legend = fetch_image(LEGEND_URL)
 background = fetch_image(BACKGROUND_IMAGE_URL)
@@ -53,12 +55,14 @@ topography = fetch_image(TOPOGRAPHY_URL)
 range_ = fetch_image(RANGE_URL)
 locations = fetch_image(LOCATIONS_URL)
 
+
 def fetch_radar_image_urls():
     return [
         url_regex.search(line.decode()).group(0)
         for line in urlopen(PAGE_URL).readlines()
         if image_regex.search(line.decode('utf-8'))
     ]
+
 
 def fetch_radar_image_urls_last_6_hours():
     print('Determining radar URLs...')
@@ -68,12 +72,13 @@ def fetch_radar_image_urls_last_6_hours():
         if match:
             timestamp = datetime.datetime.strptime(match.group(1), "%Y%m%d%H%M")
             # for _ in range(240):
-            #for _ in range(120):
+            # for _ in range(120):
             for _ in range(70):
                 url = RADAR_URL_PREFIX + timestamp.strftime("%Y%m%d%H%M") + '.png'
                 urls.insert(0, url)
                 timestamp = timestamp + datetime.timedelta(minutes=-6)
     return urls
+
 
 def create_frame(url):
     try:
@@ -93,6 +98,7 @@ def create_frame(url):
     print('Completed frame for ' + url)
     return frame
 
+
 @app.route('/')
 @app.route('/radar.gif')
 def gifme():
@@ -102,7 +108,7 @@ def gifme():
             create_frame(url)
             for url in fetch_radar_image_urls()
         ]
-        if frame != None
+        if frame is not None
     ]
 
     print('Making gif...')
@@ -122,12 +128,12 @@ def gifme6():
             create_frame(url)
             for url in fetch_radar_image_urls_last_6_hours()
         ]
-        if frame != None
+        if frame is not None
     ]
     gif_buffer = BytesIO()
     writeGif(gif_buffer, frames, duration=0.001)
-    #f = open('stuff.gif', 'rb+')
-    #f.write(gif_buffer.getvalue())
+    # f = open('stuff.gif', 'rb+')
+    # f.write(gif_buffer.getvalue())
 
     response = make_response(gif_buffer.getvalue())
     response.headers['Content-Type'] = 'image/gif'
