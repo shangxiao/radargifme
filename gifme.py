@@ -1,12 +1,15 @@
-import os
-import urllib
-import urllib2
-import cStringIO
-import re
 import datetime
-from PIL import Image
+import os
+import re
+import urllib
+from io import BytesIO
+from urllib.request import urlopen
+
 from flask import Flask, make_response
+from PIL import Image
+
 from images2gif import writeGif
+
 app = Flask(__name__)
 
 cache = False
@@ -31,16 +34,16 @@ def fetch_image(url):
     if cache:
         filename = os.path.join('cache', filename_regex.search(url).group(1))
         if not os.path.exists(filename):
-            print 'Caching ' + url
+            print('Caching ' + url)
             try:
                 urllib.urlretrieve(url, filename)
             except Exception as e:
                 raise Exception("Error retrieving image " + url + "\n" + e.message)
         return Image.open(filename).convert('RGBA')
     else:
-        print 'Fetching ' + url + '...'
+        print('Fetching ' + url + '...')
         # try:
-        return Image.open(cStringIO.StringIO(urllib2.urlopen(url).read())).convert('RGBA')
+        return Image.open(BytesIO(urlopen(url).read())).convert('RGBA')
         # except Exception as e:
             # raise Exception("Error retrieving image " + url + "\n" + e.message)
 
@@ -52,28 +55,33 @@ locations = fetch_image(LOCATIONS_URL)
 
 def fetch_radar_image_urls():
     return [
-        url_regex.search(line).group(0)
-        for line in urllib2.urlopen(PAGE_URL).readlines()
-        if image_regex.search(line)
+        url_regex.search(line.decode()).group(0)
+        for line in urlopen(PAGE_URL).readlines()
+        if image_regex.search(line.decode('utf-8'))
     ]
 
 def fetch_radar_image_urls_last_6_hours():
-    print 'Determining radar URLs...'
+    print('Determining radar URLs...')
     urls = []
-    for line in urllib2.urlopen(PAGE_URL).readlines():
-        match = last_image_regex.search(line)
+    for line in urlopen(PAGE_URL).readlines():
+        match = last_image_regex.search(line.decode('utf-8'))
         if match:
             timestamp = datetime.datetime.strptime(match.group(1), "%Y%m%d%H%M")
-            # for _ in xrange(240):
-            for _ in xrange(60):
+            # for _ in range(240):
+            #for _ in range(120):
+            for _ in range(70):
                 url = RADAR_URL_PREFIX + timestamp.strftime("%Y%m%d%H%M") + '.png'
                 urls.insert(0, url)
                 timestamp = timestamp + datetime.timedelta(minutes=-6)
     return urls
 
 def create_frame(url):
-    radar = fetch_image(url)
-    print 'Creating frame for ' + url + '...'
+    try:
+        radar = fetch_image(url)
+    except IOError:
+        print('Skipping bad frame ' + url)
+        return None
+    print('Creating frame for ' + url + '...')
     frame = Image.new("RGBA", legend.size)
     box = (0, 0) + background.size
     frame.paste(background, box=box)
@@ -82,16 +90,23 @@ def create_frame(url):
     frame.paste(range_, box=box, mask=range_)
     frame.paste(locations, box=box, mask=locations)
     frame.paste(legend, mask=legend)
-    print 'Completed frame for ' + url
+    print('Completed frame for ' + url)
     return frame
 
 @app.route('/')
 @app.route('/radar.gif')
 def gifme():
-    frames = [create_frame(url) for url in fetch_radar_image_urls()]
+    frames = [
+        frame
+        for frame in [
+            create_frame(url)
+            for url in fetch_radar_image_urls()
+        ]
+        if frame != None
+    ]
 
-    print 'Making gif...'
-    gif_buffer = cStringIO.StringIO()
+    print('Making gif...')
+    gif_buffer = BytesIO()
     writeGif(gif_buffer, frames, duration=0.5)
     print('Done')
 
@@ -101,13 +116,24 @@ def gifme():
 
 @app.route('/6/radar.gif')
 def gifme6():
-    frames = [create_frame(url) for url in fetch_radar_image_urls_last_6_hours()]
-    gif_buffer = cStringIO.StringIO()
+    frames = [
+        frame
+        for frame in [
+            create_frame(url)
+            for url in fetch_radar_image_urls_last_6_hours()
+        ]
+        if frame != None
+    ]
+    gif_buffer = BytesIO()
     writeGif(gif_buffer, frames, duration=0.001)
+    #f = open('stuff.gif', 'rb+')
+    #f.write(gif_buffer.getvalue())
+
     response = make_response(gif_buffer.getvalue())
     response.headers['Content-Type'] = 'image/gif'
     return response
 
 if __name__ == "__main__":
-    app.debug = False
+    app.debug = True
     app.run()
+#gifme6()
