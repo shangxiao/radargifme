@@ -77,12 +77,16 @@ def fetch_radar_image_urls():
     ]
 
 
-def fetch_mslp_image_urls():
+def fetch_mslp_image_urls(length=None):
+    limit = 28
+    if length and length % 6 == 0 and length/6 < 28:
+        limit = length//6
+
     return [
         mslp_url_regex.search(line.decode()).group(0)
         for line in urlopen(MSLP_PAGE_URL).readlines()
         if mslp_image_regex.search(line.decode())
-    ]
+    ][-limit:]
 
 
 def fetch_radar_image_urls_last_6_hours():
@@ -142,13 +146,14 @@ def gifme():
 
 
 @app.route('/mslp')
+@app.route('/mslp/<int:length>')
 @gif_response
-def mslp():
+def mslp(length=None):
     frames = [
         frame
         for frame in [
             fetch_image(BOM_URL + url)
-            for url in fetch_mslp_image_urls()
+            for url in fetch_mslp_image_urls(length)
         ]
         if frame is not None
     ]
