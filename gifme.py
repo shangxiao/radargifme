@@ -7,6 +7,7 @@ from urllib.request import urlopen
 
 from flask import Flask, make_response
 from PIL import Image
+import wrapt
 
 from images2gif import writeGif
 
@@ -33,6 +34,14 @@ url_regex = re.compile(r'http.*png')
 filename_regex = re.compile(r'\/([^\/]+.png)')
 mslp_url_regex = re.compile(r'/fwo/.*png')
 mslp_image_regex = re.compile(r'url: ')
+
+
+@wrapt.decorator
+def gif_response(wrapped, instance, args, kwargs):
+    gif_buffer = wrapped(*args, **kwargs)
+    response = make_response(gif_buffer.getvalue())
+    response.headers['Content-Type'] = 'image/gif'
+    return response
 
 
 def fetch_image(url):
@@ -113,6 +122,7 @@ def create_frame(url):
 
 @app.route('/')
 @app.route('/radar.gif')
+@gif_response
 def gifme():
     frames = [
         frame
@@ -128,12 +138,11 @@ def gifme():
     writeGif(gif_buffer, frames, duration=0.5)
     print('Done')
 
-    response = make_response(gif_buffer.getvalue())
-    response.headers['Content-Type'] = 'image/gif'
-    return response
+    return gif_buffer
 
 
 @app.route('/mslp')
+@gif_response
 def mslp():
     frames = [
         frame
@@ -147,12 +156,11 @@ def mslp():
     gif_buffer = BytesIO()
     writeGif(gif_buffer, frames, duration=0.5)
 
-    response = make_response(gif_buffer.getvalue())
-    response.headers['Content-Type'] = 'image/gif'
-    return response
+    return gif_buffer
 
 
 @app.route('/6/radar.gif')
+@gif_response
 def gifme6():
     frames = [
         frame
@@ -167,9 +175,8 @@ def gifme6():
     # f = open('stuff.gif', 'rb+')
     # f.write(gif_buffer.getvalue())
 
-    response = make_response(gif_buffer.getvalue())
-    response.headers['Content-Type'] = 'image/gif'
-    return response
+    return gif_buffer
+
 
 if __name__ == "__main__":
     app.debug = True
