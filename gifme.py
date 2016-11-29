@@ -158,8 +158,10 @@ def mslp(length=None):
         if frame is not None
     ]
 
+    frames_plus_pause = frames + [frames[-1].copy()]
+
     gif_buffer = BytesIO()
-    writeGif(gif_buffer, frames, duration=0.5)
+    writeGif(gif_buffer, frames_plus_pause, duration=0.5)
 
     return gif_buffer
 
