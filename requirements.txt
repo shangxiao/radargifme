@@ -1,5 +1,5 @@
-Flask==0.10.1
-Pillow==2.7.0
-numpy==1.9.1
-gunicorn==19.2.1
-wrapt==1.10.8
+Flask==1.0.2
+Pillow==5.3.0
+numpy==1.15.4
+gunicorn==19.9.0
+wrapt==1.10.11
