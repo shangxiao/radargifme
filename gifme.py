@@ -3,11 +3,11 @@ import os
 import re
 import urllib
 from io import BytesIO
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
+import wrapt
 from flask import Flask, make_response
 from PIL import Image
-import wrapt
 
 from images2gif import writeGif
 
@@ -17,6 +17,8 @@ cache = False
 
 if cache and not os.path.exists('cache'):
     os.makedirs('cache')
+
+HEADERS ={'User-Agent': 'Mozilla/5.0'}
 
 BOM_URL = 'http://www.bom.gov.au/'
 PAGE_URL = 'http://www.bom.gov.au/products/IDR023.loop.shtml'
@@ -57,7 +59,7 @@ def fetch_image(url):
     else:
         print('Fetching ' + url + '...')
         # try:
-        return Image.open(BytesIO(urlopen(url).read())).convert('RGBA')
+        return Image.open(BytesIO(urlopen(Request(url, headers=HEADERS)).read())).convert('RGBA')
         # except Exception as e:
         #     raise Exception("Error retrieving image " + url + "\n" + e.message)
 
@@ -72,7 +74,7 @@ locations = fetch_image(LOCATIONS_URL)
 def fetch_radar_image_urls():
     return [
         url_regex.search(line.decode()).group(0)
-        for line in urlopen(PAGE_URL).readlines()
+        for line in urlopen(Request(PAGE_URL, headers=HEADERS)).readlines()
         if image_regex.search(line.decode('utf-8'))
     ]
 
@@ -84,7 +86,7 @@ def fetch_mslp_image_urls(length=None):
 
     return [
         mslp_url_regex.search(line.decode()).group(0)
-        for line in urlopen(MSLP_PAGE_URL).readlines()
+        for line in urlopen(Request(MSLP_PAGE_URL, headers=HEADERS)).readlines()
         if mslp_image_regex.search(line.decode())
     ][-limit:]
 
@@ -92,7 +94,7 @@ def fetch_mslp_image_urls(length=None):
 def fetch_radar_image_urls_last_6_hours():
     print('Determining radar URLs...')
     urls = []
-    for line in urlopen(PAGE_URL).readlines():
+    for line in urlopen(Request(PAGE_URL, headers=HEADERS)).readlines():
         match = last_image_regex.search(line.decode('utf-8'))
         if match:
             timestamp = datetime.datetime.strptime(match.group(1), "%Y%m%d%H%M")
